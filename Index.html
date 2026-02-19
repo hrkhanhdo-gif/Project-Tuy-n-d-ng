@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <?!= include('css'); ?>
+    <script>
+        window.onerror = function (message, source, lineno, colno, error) {
+            alert('Global Error: ' + message + ' at line ' + lineno);
+        };
+        var hasDB = <?!= isDbSetup ?>;
+    </script>
+</head>
+
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <div class="mb-4">
+                <i class="fas fa-user-circle fa-4x" style="color: var(--primary-color);"></i>
+            </div>
+            <h2>Đăng Nhập Hệ Thống</h2>
+            <div class="mb-3 text-start">
+                <label class="form-label">Tên đăng nhập</label>
+                <input type="text" class="form-control" id="login-username" placeholder="admin">
+            </div>
+            <div class="mb-4 text-start">
+                <label class="form-label">Mật khẩu</label>
+                <input type="password" class="form-control" id="login-password" placeholder="******">
+            </div>
+            <button class="btn btn-primary-custom" onclick="handleLogin()">ĐĂNG NHẬP</button>
+            <p class="mt-3 text-muted" id="login-message"></p>
+
+            <!-- Loading Spinner for Login -->
+            <div id="login-loader" class="spinner-border text-warning mt-3" role="status" style="display:none;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP (Hidden by default) -->
+    <div id="app-container" style="display:none;">
+
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="brand">
+                <i class="fas fa-briefcase"></i> HR RECRUIT
+            </div>
+            <nav>
+                <a href="javascript:void(0)" class="nav-link active" onclick="showSection('dashboard', this)">
+                    <i class="fas fa-chart-pie"></i> Tổng Quan
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('candidates', this)">
+                    <i class="fas fa-users"></i> Ứng Viên
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('kanban', this)">
+                    <i class="fas fa-columns"></i> Bảng Kanban
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('jobs', this)">
+                    <i class="fas fa-briefcase"></i> Vị trí Tuyển dụng
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('departments', this)">
+                    <i class="fas fa-building"></i> Phòng Ban
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('reports', this)">
+                    <i class="fas fa-file-invoice"></i> Báo Cáo
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="showSection('settings', this)" id="nav-settings">
+                    <i class="fas fa-cogs"></i> Cài Đặt
+                </a>
+                <a href="javascript:void(0)" class="nav-link" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Đăng Xuất
+                </a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+
+            <!-- Top Bar -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h3 id="page-title" class="fw-bold">Tổng Quan</h3>
+                <div class="d-flex align-items-center">
+                    <span class="me-3 fw-bold"><i class="fas fa-user"></i> Xin chào, <span
+                            id="current-user-display">Admin</span></span>
+                    <button class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-bell"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTIONS -->
+
+            <!-- 1. DASHBOARD -->
+            <div id="dashboard" class="section active">
+                <!-- Stat Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-blue p-3">
+                            <h5>Tổng Ứng Viên</h5>
+                            <h2 class="fw-bold" id="stat-total-candidates">0</h2>
+                            <small><i class="fas fa-arrow-up"></i> +5 tuần này</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-green p-3">
+                            <h5>Đã Tuyển</h5>
+                            <h2 class="fw-bold" id="stat-hired">0</h2>
+                            <small>Trong tháng này</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-orange p-3">
+                            <h5>Đang Phỏng Vấn</h5>
+                            <h2 class="fw-bold" id="stat-interviewing">0</h2>
+                            <small>Cần xử lý gấp</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card bg-gradient-red p-3">
+                            <h5>Đã Từ Chối</h5>
+                            <h2 class="fw-bold" id="stat-rejected">0</h2>
+                            <small>Tỷ lệ 52%</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Area -->
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card border-0 shadow-sm p-3 mb-4">
+                            <h5 class="card-title mb-3">Hiệu suất tuyển dụng theo tháng</h5>
+                            <canvas id="recruitmentChart" height="150"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm p-3 mb-4">
+                            <h5 class="card-title mb-3">Nguồn ứng viên</h5>
+                            <canvas id="sourceChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. KANBAN BOARD -->
+            <div id="kanban" class="section">
+                <div class="d-flex justify-content-between mb-3 flex-wrap gap-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <input type="text" id="kanban-search" class="form-control" placeholder="Tìm kiếm ứng viên..."
+                            style="width: 200px;">
+                        <select id="filter-department" class="form-select w-auto">
+                            <option value="">Tất cả phòng ban</option>
+                        </select>
+                        <select id="filter-position" class="form-select w-auto">
+                            <option value="">Tất cả vị trí</option>
+                        </select>
+                        <select id="filter-recruiter" class="form-select w-auto">
+                            <option value="">Người phụ trách</option>
+                        </select>
+                        <input type="date" id="filter-date-from" class="form-control w-auto" placeholder="Từ ngày">
+                        <input type="date" id="filter-date-to" class="form-control w-auto" placeholder="Đến ngày">
+                    </div>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addCandidateModal">
+                        <i class="fas fa-plus"></i> Thêm Ứng Viên
+                    </button>
+                </div>
+
+                <div class="kanban-board" id="kanban-container">
+                    <!-- Loading spinner (controlled by JS) -->
+                    <div class="text-center py-5" id="kanban-loading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted fw-bold">Đang tải dữ liệu...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. CANDIDATES LIST -->
+            <div id="candidates" class="section">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">Danh sách ứng viên</h4>
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="candidates-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Họ Tên</th>
+                                        <th>Vị trí</th>
+                                        <th>Ngày ứng tuyển</th>
+                                        <th>Trạng thái</th>
+                                        <th>Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Data rows go here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- JOBS SECTION -->
+            <div id="jobs" class="section">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3>Quản lý Tin Tuyển Dụng</h3>
+                    <button class="btn btn-primary-custom" data-bs-toggle="modal" data-bs-target="#addJobModal">
+                        <i class="fas fa-plus"></i> Tạo Tin Mới
+                    </button>
+                </div>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle" id="jobs-table">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Vị trí</th>
+                                        <th>Phòng ban</th>
+                                        <th>Địa điểm</th>
+                                        <th>Ngày tạo</th>
+                                        <th>Trạng thái</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS SECTION -->
+            <div id="settings" class="section">
+                <!-- ... settings content ... -->
+                <h3 class="mb-4">Cài Đặt Hệ Thống</h3>
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom-0">
+                        <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                            <li class="nav-item">
+                                <a class="nav-link active" data-bs-toggle="tab" href="#tab-departments">Vị trí & Phòng
+                                    ban</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#tab-users">Quản lý Users</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#tab-stages">Quy trình Tuyển dụng</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" data-bs-toggle="tab" href="#tab-email">Cấu hình Email</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content">
+                            <!-- DEPARTMENTS TAB -->
+                            <div class="tab-pane fade show active" id="tab-departments">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <h5>Quản lý Phòng ban & Vị trí công việc</h5>
+                                    <button class="btn btn-sm btn-primary" onclick="promptAddDepartment()">
+                                        <i class="fas fa-plus"></i> Thêm Phòng ban
+                                    </button>
+                                </div>
+
+                                <div id="departments-container" class="row g-3">
+                                    <!-- Department cards will be injected here -->
+                                </div>
+                            </div>
+
+                            <!-- USERS TAB -->
+                            <div class="tab-pane fade" id="tab-users">
+                                <div class="d-flex justify-content-between mb-3">
+                                    <h5>Danh sách người dùng</h5>
+                                    <button class="btn btn-sm btn-success" data-bs-toggle="modal"
+                                        data-bs-target="#addUserModal">
+                                        <i class="fas fa-user-plus"></i> Thêm User
+                                    </button>
+                                </div>
+                                <table class="table table-bordered" id="users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Họ tên</th>
+                                            <th>Vai trò</th>
+                                            <th>Phòng ban</th>
+                                            <th>Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+
+                            <!-- STAGES TAB -->
+                            <div class="tab-pane fade" id="tab-stages">
+                                <h5 class="mb-3">Cấu hình Web (Các bước tuyển dụng)</h5>
+                                <div id="stages-config-list" class="mb-3">
+                                    <!-- Stages loaded here -->
+                                </div>
+                                <button class="btn btn-outline-secondary mb-3" onclick="addStageConfigRow()"><i
+                                        class="fas fa-plus"></i> Thêm Bước</button>
+                                <button class="btn btn-primary" onclick="saveStagesConfig()">Lưu Cấu Hình</button>
+                            </div>
+                            <!-- EMAIL TAB (Placeholder) -->
+                            <div class="tab-pane fade" id="tab-email">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="list-group" id="email-template-list">
+                                            <!-- Templates loaded here -->
+                                            <a href="#" class="list-group-item list-group-item-action active">Interview
+                                                Invitation</a>
+                                            <a href="#" class="list-group-item list-group-item-action">Offer Letter</a>
+                                            <a href="#" class="list-group-item list-group-item-action">Rejection
+                                                Email</a>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <form id="email-template-form" style="display:none;">
+                                            <h5 id="template-editor-title">Chỉnh sửa mẫu</h5>
+                                            <input type="hidden" id="tpl-id">
+                                            <div class="mb-3">
+                                                <label class="form-label">Tiêu đề Email</label>
+                                                <input type="text" class="form-control" id="tpl-subject">
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Nội dung</label>
+                                                <textarea class="form-control" id="tpl-body" rows="10"></textarea>
+                                                <small class="text-muted">Có thể dùng các biến: {{name}}, {{position}},
+                                                    {{date}}</small>
+                                            </div>
+                                            <button type="button" class="btn btn-primary"
+                                                onclick="saveEmailTemplate()">Lưu Mẫu</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. DEPARTMENTS (Placeholder) -->
+            <div id="departments" class="section">
+                <h3>Phòng Ban</h3>
+                <p>Tính năng đang phát triển...</p>
+            </div>
+
+            <!-- 7. REPORTS (Placeholder) -->
+            <div id="reports" class="section">
+                <h3>Báo Cáo</h3>
+                <p>Tính năng đang phát triển...</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL: ADD CANDIDATE -->
+    <div class="modal fade" id="addCandidateModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm Ứng Viên Mới</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-candidate-form">
+                        <!-- Row 1: Basic Info -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Họ và Tên <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="add-name" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Số điện thoại</label>
+                                <input type="tel" class="form-control" id="add-phone">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Email</label>
+                                <input type="email" class="form-control" id="add-email">
+                            </div>
+                        </div>
+
+                        <!-- Row 2: Department & Position -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Phòng ban <span class="text-danger">*</span></label>
+                                <select class="form-select" id="add-department"
+                                    onchange="populateAddPositionDropdown()">
+                                    <option value="">Chọn phòng ban</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Vị trí ứng tuyển <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="add-position">
+                                    <option value="">Chọn vị trí</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Kinh nghiệm</label>
+                                <input type="text" class="form-control" id="add-experience" placeholder="VD: 2 năm">
+                            </div>
+                        </div>
+
+                        <!-- Row 3: Education & Salary -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Học vấn</label>
+                                <input type="text" class="form-control" id="add-education"
+                                    placeholder="VD: Đại học Kinh tế">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Mức lương mong muốn</label>
+                                <input type="text" class="form-control" id="add-salary" placeholder="VD: 15000000">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nguồn ứng viên</label>
+                                <select class="form-select" id="add-source">
+                                    <option value="">Chọn nguồn</option>
+                                    <option>Website</option>
+                                    <option>LinkedIn</option>
+                                    <option>Facebook</option>
+                                    <option>Referral</option>
+                                    <option>Job Portal</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 4: Recruiter & Status -->
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Người phụ trách</label>
+                                <input type="text" class="form-control" id="add-recruiter"
+                                    placeholder="Tên người phụ trách">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Trạng thái liên hệ</label>
+                                <select class="form-select" id="add-contact-status">
+                                    <option value="">Chọn trạng thái</option>
+                                    <option>Chưa liên hệ</option>
+                                    <option>Đã gọi</option>
+                                    <option>Đã hẹn phỏng vấn</option>
+                                    <option>Không nghe máy</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Giai đoạn</label>
+                                <select class="form-select" id="add-status">
+                                    <!-- Populated dynamically from workflow stages -->
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Row 5: CV & Notes -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Upload CV (PDF)</label>
+                                <input type="file" class="form-control" accept=".pdf,.doc,.docx" id="add-cv-file">
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Ghi chú</label>
+                                <textarea class="form-control" id="add-notes" rows="3"
+                                    placeholder="Ghi chú về ứng viên..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary-custom" onclick="saveCandidate()">Lưu Hồ Sơ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD JOB -->
+    <div class="modal fade" id="addJobModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Tạo Tin Tuyển Dụng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-job-form">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Tiêu đề</label>
+                                <input type="text" class="form-control" name="title" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Phòng ban</label>
+                                <select class="form-select" name="department">
+                                    <option>IT</option>
+                                    <option>HR</option>
+                                    <option>Sales</option>
+                                    <option>Marketing</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Địa điểm</label>
+                                <select class="form-select" name="location">
+                                    <option>Hà Nội</option>
+                                    <option>Hồ Chí Minh</option>
+                                    <option>Remote</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Loại hình</label>
+                                <select class="form-select" name="type">
+                                    <option>Full-time</option>
+                                    <option>Part-time</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Mô tả</label>
+                                <textarea class="form-control" name="description" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary-custom" onclick="saveJob()">Lưu Tin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD USER -->
+    <div class="modal fade" id="addUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm Người Dùng</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-user-form">
+                        <div class="mb-3"><label class="form-label">Username</label><input type="text"
+                                class="form-control" name="username" required></div>
+                        <div class="mb-3"><label class="form-label">Password</label><input type="password"
+                                class="form-control" name="password" required></div>
+                        <div class="mb-3"><label class="form-label">Họ tên</label><input type="text"
+                                class="form-control" name="fullname"></div>
+                        <div class="mb-3"><label class="form-label">Email</label><input type="email"
+                                class="form-control" name="email"></div>
+                        <div class="mb-3"><label class="form-label">Vai trò</label>
+                            <select class="form-select" name="role">
+                                <option>User</option>
+                                <option>Admin</option>
+                                <option>Manager</option>
+                            </select>
+                        </div>
+                        <div class="mb-3"><label class="form-label">Phòng ban</label>
+                            <select class="form-select" name="department">
+                                <option>All</option>
+                                <option>IT</option>
+                                <option>HR</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" onclick="saveNewUser()">Thêm User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CANDIDATE DETAILS -->
+    <div class="modal fade" id="candidateDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Chi Tiết Ứng Viên</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-candidate-form">
+                        <input type="hidden" id="current-candidate-id">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Họ tên ứng viên <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="detail-name" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Giới tính</label>
+                                <select class="form-select" id="detail-gender">
+                                    <option>- Lựa chọn -</option>
+                                    <option>Nam</option>
+                                    <option>Nữ</option>
+                                    <option>Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Số điện thoại <span
+                                        class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                    <input type="tel" class="form-control" id="detail-phone" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Email <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                    <input type="email" class="form-control" id="detail-email" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Phòng ban <span class="text-danger">*</span></label>
+                                <select class="form-select" id="detail-department"
+                                    onchange="populatePositionDropdown()">
+                                    <option value="">Chọn phòng ban</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Vị trí ứng tuyển <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="detail-position">
+                                    <option>Chọn vị trí</option>
+                                    <option>Java Developer</option>
+                                    <option>Python Developer</option>
+                                    <option>Marketing Executive</option>
+                                    <option>Sales Manager</option>
+                                    <option>HR Manager</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Kinh nghiệm</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-briefcase"></i></span>
+                                    <input type="text" class="form-control" id="detail-experience"
+                                        placeholder="VD: 2 năm">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Học vấn</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-graduation-cap"></i></span>
+                                    <input type="text" class="form-control" id="detail-education"
+                                        placeholder="VD: Đại học Kinh tế">
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Mức lương mong muốn</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-dollar-sign"></i></span>
+                                    <input type="text" class="form-control" id="detail-salary"
+                                        placeholder="VD: 15.000.000">
+                                    <span class="input-group-text">VNĐ</span>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nguồn ứng viên</label>
+                                <select class="form-select" id="detail-source">
+                                    <option>Chọn nguồn</option>
+                                    <option>Website</option>
+                                    <option>LinkedIn</option>
+                                    <option>Facebook</option>
+                                    <option>Referral</option>
+                                    <option>Headhunt</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Nhân viên tuyển dụng <span
+                                        class="text-danger">*</span></label>
+                                <select class="form-select" id="detail-recruiter">
+                                    <option>Chọn nhân viên</option>
+                                    <option>Nguyễn Văn A</option>
+                                    <option>Trần Thị B</option>
+                                    <option>Lê Văn C</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Trạng thái <span class="text-danger">*</span></label>
+                                <select class="form-select" id="detail-status">
+                                    <!-- Populated dynamically from workflow stages -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Tình trạng liên hệ</label>
+                                <select class="form-select" id="detail-contact-status">
+                                    <option>Chọn tình trạng</option>
+                                    <option>Mới tiếp nhận</option>
+                                    <option>Đã liên lạc</option>
+                                    <option>Chờ phản hồi</option>
+                                    <option>Đang trao đổi</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Link CV / Upload File</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="detail-cv-link"
+                                        placeholder="Nhập link hoặc upload file">
+                                    <button class="btn btn-outline-primary" type="button">
+                                        <i class="fas fa-upload"></i> Upload
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold">Ghi chú</label>
+                                <textarea class="form-control" id="detail-notes" rows="4"
+                                    placeholder="Nhập ghi chú về ứng viên..."></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCandidateDetail()">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <?!= include('js'); ?>
+</body>
+
+</html>
